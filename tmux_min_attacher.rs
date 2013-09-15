@@ -32,7 +32,7 @@ fn detached_sessions(output: ~str) -> TrieSet {
 
 #[fixed_stack_segment]
 fn exec_program(program: &str, args: &[~str]) {
-    do program.to_c_str().with_ref() |c_program| {
+    do program.with_c_str() |c_program| {
         // I don't much care about the ownership of the strings here
         // at this point, so let's just fail if execvp isn't working.
         unsafe {
