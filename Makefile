@@ -6,3 +6,6 @@ run:
 
 test:
 	rust test tmux_min_attacher.rs
+
+clean:
+	git clean -fdx
