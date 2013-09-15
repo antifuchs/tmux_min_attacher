@@ -9,21 +9,17 @@ use std::c_str::*;
 use std::vec;
 use std::ptr;
 
-fn session_is_attached(line: &str) -> bool {
-    line.ends_with("(attached)")
-}
-
-fn session_number(line: &str) -> Option<uint> {
-    line.split_iter(':').next().and_then(|s| from_str(s))
+fn detached_session_number(line: &str) -> Option<uint> {
+    if line.ends_with("(attached)") {
+        None
+    } else {
+        line.split_iter(':').next().and_then(|s| from_str(s))
+    }
 }
 
 fn detached_sessions(output: ~str) -> TrieSet {
     output.line_iter().filter_map(|line| {
-        if !session_is_attached(line) {
-            session_number(line)
-        } else {
-            None
-        }
+            detached_session_number(line)
     }).collect()
 }
 
@@ -66,7 +62,7 @@ fn test_session_is_attached() {
 
 #[test]
 fn test_session_number_with_numbers(){
-    match(session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)")) {
+    match(detached_session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
         Some(11) => (),
         Some(n) => fail!(fmt!("Should have returned 11, got %u!", n)),
         None => fail!("Should have returned something, got nothing"),
@@ -75,11 +71,20 @@ fn test_session_number_with_numbers(){
 
 #[test]
 fn test_session_number_with_strings(){
-    match(session_number("oink: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)")) {
+    match(detached_session_number("oink: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
         Some(n) => fail!(fmt!("Should have returned None, got %u!", n)),
         None => ()
     }
 }
+
+#[test]
+fn test_session_number_with_attached_session(){
+    match(detached_session_number("1: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)")) {
+        Some(n) => fail!(fmt!("Should have returned None, got %u!", n)),
+        None => ()
+    }
+}
+
 
 #[test]
 fn test_detached_sessions() {
