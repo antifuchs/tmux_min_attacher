@@ -27,7 +27,7 @@ fn detached_sessions(output: ~str) -> TrieSet {
 }
 
 fn main() {
-    let proc = run::process_output("/usr/local/bin/tmux", &[~"list-sessions"]);
+    let proc = run::process_output("tmux", &[~"list-sessions"]);
     if proc.status != 0 {
         fail!(fmt!("Tmux exited with an error status: %d", proc.status));
     }
