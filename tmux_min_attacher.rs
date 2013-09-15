@@ -65,8 +65,12 @@ fn test_session_number_with_strings(){
 #[test]
 fn test_detached_sessions() {
     let set = detached_sessions(~"3: foo (attached)\n2: bar\n4: abz (attached)\nfoo: baz");
-    assert!(!set.contains(&2));
-    assert!(set.contains(&3));
-    assert!(set.contains(&4));
+    assert!(set.contains(&2));
+
+    // attached sessions:
+    assert!(!set.contains(&3));
+    assert!(!set.contains(&4));
+
+    // missing session:
     assert!(!set.contains(&1));
 }
