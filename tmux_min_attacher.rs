@@ -18,16 +18,13 @@ fn session_number(line: &str) -> Option<uint> {
 }
 
 fn detached_sessions(output: ~str) -> TrieSet {
-    let mut set = TrieSet::new();
-    for line in output.line_iter(){
+    output.line_iter().filter_map(|line| {
         if !session_is_attached(line) {
-            match session_number(line) {
-                Some(n) => { set.insert(n); }
-                None => ()
-            }
+            session_number(line)
+        } else {
+            None
         }
-    }
-    set
+    }).collect()
 }
 
 #[fixed_stack_segment]
@@ -86,12 +83,14 @@ fn test_session_number_with_strings(){
 
 #[test]
 fn test_detached_sessions() {
-    let set = detached_sessions(~"3: foo (attached)\n2: bar\n4: abz (attached)\nfoo: baz");
-    assert!(set.contains(&2));
-
+    let set = detached_sessions(~"3: foo (attached)\n2: bar\n15: oink\n4: baz (attached)\nfoo: baz");
     // attached sessions:
     assert!(!set.contains(&3));
     assert!(!set.contains(&4));
+
+    // detached sessions should be present:
+    assert!(set.contains(&15));
+    assert!(set.contains(&2));
 
     // missing session:
     assert!(!set.contains(&1));
