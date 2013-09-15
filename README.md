@@ -15,10 +15,19 @@ getting pretty annoying to me, so I wrote this program.
 2. (optionally) check the PATH that
    [this](https://github.com/antifuchs/tmux_min_attacher/blob/master/tmux_min_attacher.rs#L42-L48)
    sets - setting PATH from your shell init files won't cut it here.
+2. (optionally) `make test`
 3. `make install`
 4. Set your terminal to run the `tmux_min_attacher` binary as the
    command for new windows.
 5. Open and close tabs/windows and be happy
+
+## But but but... rust!?
+
+"You could do this from the shell!" - Yep, and I did, for the longest
+time. Sadly, however, my shell startup is slow enough that this
+significantly delayed everything, and especially caused stuff I'd
+typed ahead of the shell startup to be missed. Hence, Rust. This is
+pretty nice and fast, let me tell you. (no missed typeahead!)
 
 ## Disclaimer
 
