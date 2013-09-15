@@ -8,6 +8,7 @@ use std::libc::{execvp, perror};
 use std::c_str::*;
 use std::vec;
 use std::ptr;
+use std::os;
 
 fn detached_session_number(line: &str) -> Option<uint> {
     if line.ends_with("(attached)") {
@@ -38,7 +39,17 @@ fn exec_program(program: &str, args: &[~str]) {
     }
 }
 
+fn prepare_environment() {
+    let path = match os::getenv("PATH") {
+        Some(path) => path + ":/usr/local/bin",
+        _ => ~"/bin:/usr/bin:/usr/local/bin"
+    };
+    os::setenv("PATH", path);
+}
+
 fn main() {
+    prepare_environment();
+
     let proc = run::process_output("tmux", &[~"list-sessions"]);
     if proc.status != 0 {
         fail!(fmt!("Tmux exited with an error status: %d", proc.status));
