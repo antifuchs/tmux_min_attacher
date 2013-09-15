@@ -25,12 +25,16 @@ getting pretty annoying to me, so I wrote this program.
 
 "You could do this from the shell!" - Yep, and I did, for the longest
 time. Sadly, however, my shell startup is slow enough that this
-significantly delayed everything, and especially caused stuff I'd
-typed ahead of the shell startup to be missed. Hence, Rust. This is
-pretty nice and fast, let me tell you. (no missed typeahead!)
+significantly delayed startup of new shells, and what's worse, caused
+stuff I'd typed ahead of the shell startup to be missed. Hence,
+Rust. This is fast enough, let me tell you. (No missed typeahead, at
+least!)
 
 ## Disclaimer
 
-I've tested this with a 0.8pre release of Rust. Interfaces are not
-super stable, and this even uses FFI, so things are likely to break in
-surprising amusing ways. I hope they don't, though!
+I've tested this with a 0.8pre release of Rust. Its interfaces are not
+yet super stable (they recently redid iteration! Exciting!). This even
+uses FFI, so things are likely to break in surprising / amusing
+ways. I hope they don't, though! Let me know in the
+[Issues](https://github.com/antifuchs/tmux_min_attacher/issues) if
+anything breaks for you. Or, wow, even better, submit a pull request! (:
