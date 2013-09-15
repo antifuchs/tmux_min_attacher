@@ -55,12 +55,6 @@ fn main() {
 }
 
 #[test]
-fn test_session_is_attached() {
-    assert!(session_is_attached("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)"));
-    assert!(!session_is_attached("20: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]"));
-}
-
-#[test]
 fn test_session_number_with_numbers(){
     match(detached_session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
         Some(11) => (),
