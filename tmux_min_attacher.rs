@@ -47,9 +47,17 @@ fn prepare_environment() {
     os::setenv("PATH", path);
 }
 
+fn start_server() {
+    let proc = run::process_output("tmux", &[~"start-server"]);
+    if proc.status != 0 {
+        fail!(fmt!("Could not start tmux server: exited with an error status: %d", proc.status));
+    }
+}
+
 fn main() {
     prepare_environment();
 
+    start_server();
     let proc = run::process_output("tmux", &[~"list-sessions"]);
     if proc.status != 0 {
         fail!(fmt!("Tmux exited with an error status: %d", proc.status));
