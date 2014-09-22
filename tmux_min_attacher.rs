@@ -1,12 +1,12 @@
-extern mod std;
+extern crate std;
+extern crate libc;
 
-use std::run;
+use std::io::Command;
 use std::str;
 use std::option::Option;
-use std::trie::TrieSet;
-use std::libc::{execvp, perror};
+use std::collections::TrieSet;
+use libc::{execvp, perror};
 //use std::c_str::ptr;
-use std::vec;
 use std::ptr;
 use std::os;
 
@@ -18,58 +18,70 @@ fn detached_session_number(line: &str) -> Option<uint> {
     }
 }
 
-fn detached_sessions(output: ~str) -> TrieSet {
+fn detached_sessions(output: &str) -> TrieSet {
     output.lines().filter_map(|line| {
             detached_session_number(line)
     }).collect()
 }
 
-fn exec_program(program: &str, args: &[~str]) {
+fn exec_program(program: &str, args: &[&str]) {
     program.with_c_str(|c_program| {
             // I don't much care about the ownership of the strings here
             // at this point, so let's just fail if execvp isn't working.
             unsafe {
-                let mut c_args = args.map(|arg| { arg.to_c_str().unwrap() });
+                let mut c_args = vec![];
+                for &arg in args.iter() {
+                    c_args.push(arg.to_c_str().unwrap());
+                }
                 c_args.push(ptr::null());
-                execvp(c_program, vec::raw::to_ptr(c_args));
+                execvp(c_program, c_args.as_ptr());
                 perror("Running tmux failed:".to_c_str().unwrap());
             }
         });
-    fail!(format!("Couldn't exec {:s}", program));
+    fail!("Couldn't exec {:s}", program);
 }
 
 fn prepare_environment() {
     let path = match os::getenv("PATH") {
         Some(path) => path + ":/usr/local/bin",
-        _ => ~"/bin:/usr/bin:/usr/local/bin"
+        _ => "/bin:/usr/bin:/usr/local/bin".to_str()
     };
-    os::setenv("PATH", path);
+    os::setenv("PATH", path.as_slice());
 }
 
 fn start_server() {
-    let program = run::process_output("tmux", &[~"start-server"]);
-    if !program.status.success() {
-        fail!(format!("Could not start tmux server: exited with an error status: {:?}", program.status));
-    }
+    match Command::new("tmux").arg("start-server").status() {
+        Ok(status) => status,
+        Err(e) => fail!("Could not start tmux server: exited with an error status: {}", e),
+    };
 }
 
 fn main() {
     prepare_environment();
 
     start_server();
-    let program = run::process_output("tmux", &[~"list-sessions"]);
-    if !program.status.success() {
-        fail!(format!("Tmux exited with an error status: {:?}", program.status));
-    }
-    let output = str::from_utf8(program.output).to_owned();
-    let sessions = detached_sessions(output);
-    match sessions.iter().next() {
-        Some(n) => {
-            let session = n.to_str();
-            exec_program("tmux", &[~"tmux", ~"attach-session", ~"-t", session]);
-        }
-        _ => { exec_program("tmux", &[~"tmux"]); }
-    }
+    let session_output = Command::new("tmux").arg("list-sessions").output();
+    match session_output {
+        Ok(o) => {
+            match str::from_utf8(o.output.as_slice()) {
+                Some(output) => {
+                    let sessions = detached_sessions(output);
+                    match sessions.iter().next() {
+                        Some(n) => {
+                            let my_str = n.to_str();
+                            let session = my_str.as_slice();
+                            let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
+                            args.push(session);
+                            exec_program("tmux", args.as_slice());
+                        }
+                        _ => { exec_program("tmux", ["tmux"]); }
+                    }
+                },
+                None => fail!("Could not parse the utf-8 returned by tmux!"),
+            }
+        },
+        Err(e) => fail!("Tmux exited with an error status: {}", e),
+    };
 }
 
 #[test]
@@ -100,7 +112,7 @@ fn test_session_number_with_attached_session(){
 
 #[test]
 fn test_detached_sessions() {
-    let set = detached_sessions(~"3: foo (attached)\n2: bar\n15: oink\n4: baz (attached)\nfoo: baz");
+    let set = detached_sessions("3: foo (attached)\n2: bar\n15: oink\n4: baz (attached)\nfoo: baz");
     // attached sessions:
     assert!(!set.contains(&3));
     assert!(!set.contains(&4));
