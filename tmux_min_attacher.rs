@@ -50,36 +50,31 @@ fn prepare_environment() {
 }
 
 fn start_server() {
-    Command::new("tmux").arg("start-server").status().ok().
-        expect("Could not start tmux server: it exited with an error status.");
+    Command::new("tmux").arg("start-server").status().ok()
+        .expect("Could not start tmux server: it exited with an error status.");
 }
 
 fn main() {
     prepare_environment();
 
     start_server();
-    let session_output = Command::new("tmux").arg("list-sessions").output();
-    match session_output {
-        Ok(o) => {
-            match str::from_utf8(o.output.as_slice()) {
-                Some(output) => {
-                    let sessions = detached_sessions(output);
-                    match sessions.iter().next() {
-                        Some(n) => {
-                            let my_str = n.to_str();
-                            let session = my_str.as_slice();
-                            let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
-                            args.push(session);
-                            exec_program("tmux", args.as_slice());
-                        }
-                        _ => { exec_program("tmux", ["tmux"]); }
-                    }
-                },
-                None => fail!("Could not parse the utf-8 returned by tmux!"),
-            }
-        },
-        Err(e) => fail!("Tmux exited with an error status: {}", e),
-    };
+    let session_output = Command::new("tmux").arg("list-sessions").output().ok()
+        .expect("Running list-sessions command exited with an error status");
+
+    let output = str::from_utf8(session_output.output.as_slice())
+        .expect("Could not read the (expected) utf-8 from tmux");
+    let sessions = detached_sessions(output);
+
+    match sessions.iter().next() {
+        Some(n) => {
+            let my_str = n.to_str();
+            let session = my_str.as_slice();
+            let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
+            args.push(session);
+            exec_program("tmux", args.as_slice());
+        }
+        _ => { exec_program("tmux", ["tmux"]); }
+    }
 }
 
 #[test]
