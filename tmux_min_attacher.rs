@@ -50,10 +50,8 @@ fn prepare_environment() {
 }
 
 fn start_server() {
-    match Command::new("tmux").arg("start-server").status() {
-        Ok(status) => status,
-        Err(e) => fail!("Could not start tmux server: exited with an error status: {}", e),
-    };
+    Command::new("tmux").arg("start-server").status().ok().
+        expect("Could not start tmux server: it exited with an error status.");
 }
 
 fn main() {
