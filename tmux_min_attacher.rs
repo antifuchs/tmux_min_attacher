@@ -1,4 +1,4 @@
-extern crate std;
+//extern crate std;
 extern crate libc;
 
 use std::io::Command;
@@ -34,7 +34,7 @@ fn exec_program(program: &str, args: &[&str]) {
                     c_args.push(arg.to_c_str().unwrap());
                 }
                 c_args.push(ptr::null());
-                execvp(c_program, c_args.as_ptr());
+                execvp(c_program, c_args.as_mut_ptr());
                 perror("Running tmux failed:".to_c_str().unwrap());
             }
         });
@@ -44,7 +44,7 @@ fn exec_program(program: &str, args: &[&str]) {
 fn prepare_environment() {
     let path = match os::getenv("PATH") {
         Some(path) => path + ":/usr/local/bin",
-        _ => "/bin:/usr/bin:/usr/local/bin".to_str()
+        _ => "/bin:/usr/bin:/usr/local/bin".to_string()
     };
     os::setenv("PATH", path.as_slice());
 }
@@ -67,7 +67,7 @@ fn main() {
 
     match sessions.iter().next() {
         Some(n) => {
-            let my_str = n.to_str();
+            let my_str = n.to_string();
             let session = my_str.as_slice();
             let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
             args.push(session);
