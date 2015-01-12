@@ -1,0 +1,12 @@
+[root]
+name = "tmux_min_attacher"
+version = "0.0.1"
+dependencies = [
+ "c_str 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "c_str"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+

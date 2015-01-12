@@ -1,17 +1,14 @@
-tmux_min_attacher: tmux_min_attacher.rs
-	rustc tmux_min_attacher.rs
+target/tmux_min_attacher: src/main.rs
+	cargo build
 
 run: tmux_min_attacher
-	./tmux_min_attacher
+	cargo run
 
-test: tmux_min_attacher-test
-	./tmux_min_attacher-test
-	
-tmux_min_attacher-test: tmux_min_attacher.rs
-	rustc --test -o tmux_min_attacher-test tmux_min_attacher.rs
+test:
+	cargo test
 
 clean:
 	git clean -fdx
-	
-install: tmux_min_attacher
-	cp tmux_min_attacher ~/bin
+
+install: target/tmux_min_attacher
+	cp target/tmux_min_attacher ~/bin

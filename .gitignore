@@ -1,5 +1,1 @@
-tmux_min_attacher
-tmux_min_attacher?
-tmux_min_attachertest?
-*.dSYM
-/tmux_min_attacher-test
+/target

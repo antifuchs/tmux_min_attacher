@@ -1,0 +1,8 @@
+[package]
+
+name = "tmux_min_attacher"
+version = "0.0.1"
+authors = ["Andreas Fuchs <asf@boinkor.net>"]
+
+[dependencies]
+c_str = "^1.0.0"

@@ -1,24 +1,27 @@
 //extern crate std;
 extern crate libc;
+extern crate c_str;
 
 use std::io::Command;
 use std::str;
 use std::option::Option;
-use std::collections::TrieSet;
+use std::collections::BTreeSet;
 use libc::{execvp, perror};
 //use std::c_str::ptr;
 use std::ptr;
 use std::os;
 
-fn detached_session_number(line: &str) -> Option<uint> {
+use c_str::ToCStr;
+
+fn detached_session_number(line: &str) -> Option<usize> {
     if line.ends_with("(attached)") {
         None
     } else {
-        line.split(':').next().and_then(|s| from_str(s))
+        line.split(':').next().and_then(|s| s.parse())
     }
 }
 
-fn detached_sessions(output: &str) -> TrieSet {
+fn detached_sessions(output: &str) -> BTreeSet<usize> {
     output.lines().filter_map(|line| {
             detached_session_number(line)
     }).collect()
@@ -31,14 +34,14 @@ fn exec_program(program: &str, args: &[&str]) {
             unsafe {
                 let mut c_args = vec![];
                 for &arg in args.iter() {
-                    c_args.push(arg.to_c_str().unwrap());
+                    c_args.push(arg.to_c_str().as_ptr());
                 }
                 c_args.push(ptr::null());
                 execvp(c_program, c_args.as_mut_ptr());
-                perror("Running tmux failed:".to_c_str().unwrap());
+                perror("Running tmux failed:".to_c_str().as_ptr());
             }
-        });
-    fail!("Couldn't exec {:s}", program);
+    });
+    panic!("Oh noes, couldn't exec.");
 }
 
 fn prepare_environment() {
@@ -61,7 +64,7 @@ fn main() {
     let session_output = Command::new("tmux").arg("list-sessions").output().ok()
         .expect("Running list-sessions command exited with an error status");
 
-    let output = str::from_utf8(session_output.output.as_slice())
+    let output = str::from_utf8(session_output.output.as_slice()).ok()
         .expect("Could not read the (expected) utf-8 from tmux");
     let sessions = detached_sessions(output);
 
@@ -73,7 +76,7 @@ fn main() {
             args.push(session);
             exec_program("tmux", args.as_slice());
         }
-        _ => { exec_program("tmux", ["tmux"]); }
+        _ => { exec_program("tmux", ["tmux"].as_slice()); }
     }
 }
 
@@ -81,15 +84,15 @@ fn main() {
 fn test_session_number_with_numbers(){
     match(detached_session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
         Some(11) => (),
-        Some(n) => fail!(format!("Should have returned 11, got {:u}!", n)),
-        None => fail!("Should have returned something, got nothing"),
+        Some(n) => panic!(format!("Should have returned 11, got {}!", n)),
+        None => panic!("Should have returned something, got nothing"),
     }
 }
 
 #[test]
 fn test_session_number_with_strings(){
     match(detached_session_number("oink: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
-        Some(n) => fail!(format!("Should have returned None, got {:u}!", n)),
+        Some(n) => panic!(format!("Should have returned None, got {}!", n)),
         None => ()
     }
 }
@@ -97,7 +100,7 @@ fn test_session_number_with_strings(){
 #[test]
 fn test_session_number_with_attached_session(){
     match(detached_session_number("1: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)")) {
-        Some(n) => fail!(format!("Should have returned None, got {:u}!", n)),
+        Some(n) => panic!(format!("Should have returned None, got {}!", n)),
         None => ()
     }
 }
