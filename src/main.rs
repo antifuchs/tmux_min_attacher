@@ -1,23 +1,25 @@
+#![feature(libc)]
+#![feature(std_misc)]
+#![feature(convert)]
+
 //extern crate std;
 extern crate libc;
-extern crate c_str;
 
-use std::io::Command;
+use std::process::Command;
 use std::str;
 use std::option::Option;
 use std::collections::BTreeSet;
 use libc::{execvp, perror};
-//use std::c_str::ptr;
 use std::ptr;
-use std::os;
+use std::env;
+use std::ffi::AsOsStr;
 
-use c_str::ToCStr;
 
 fn detached_session_number(line: &str) -> Option<usize> {
     if line.ends_with("(attached)") {
         None
     } else {
-        line.split(':').next().and_then(|s| s.parse())
+        line.split(':').next().and_then(|s| s.parse().ok() )
     }
 }
 
@@ -28,28 +30,27 @@ fn detached_sessions(output: &str) -> BTreeSet<usize> {
 }
 
 fn exec_program(program: &str, args: &[&str]) {
-    program.with_c_str(|c_program| {
-            // I don't much care about the ownership of the strings here
-            // at this point, so let's just fail if execvp isn't working.
-            unsafe {
-                let mut c_args = vec![];
-                for &arg in args.iter() {
-                    c_args.push(arg.to_c_str().as_ptr());
-                }
-                c_args.push(ptr::null());
-                execvp(c_program, c_args.as_mut_ptr());
-                perror("Running tmux failed:".to_c_str().as_ptr());
-            }
-    });
+    let c_program = program.as_os_str().to_cstring().expect("Program name isn't unicode").as_ptr();
+    // I don't much care about the ownership of the strings here
+    // at this point, so let's just fail if execvp isn't working.
+    unsafe {
+        let mut c_args = vec![];
+        for &arg in args.iter() {
+            c_args.push(arg.as_os_str().to_cstring().expect("Can't with string that aren't valid Unicode").as_ptr());
+        }
+        c_args.push(ptr::null());
+        execvp(c_program, c_args.as_mut_ptr());
+        perror("Running tmux failed:".as_os_str().to_cstring().expect("Invalid text").as_ptr());
+    }
     panic!("Oh noes, couldn't exec.");
 }
 
 fn prepare_environment() {
-    let path = match os::getenv("PATH") {
-        Some(path) => path + ":/usr/local/bin",
+    let path = match env::var("PATH") {
+        Ok(path) => path + ":/usr/local/bin",
         _ => "/bin:/usr/bin:/usr/local/bin".to_string()
     };
-    os::setenv("PATH", path.as_slice());
+    env::set_var("PATH", path.as_str());
 }
 
 fn start_server() {
@@ -64,25 +65,25 @@ fn main() {
     let session_output = Command::new("tmux").arg("list-sessions").output().ok()
         .expect("Running list-sessions command exited with an error status");
 
-    let output = str::from_utf8(session_output.output.as_slice()).ok()
+    let output = str::from_utf8(session_output.stdout.as_slice()).ok()
         .expect("Could not read the (expected) utf-8 from tmux");
     let sessions = detached_sessions(output);
 
     match sessions.iter().next() {
         Some(n) => {
             let my_str = n.to_string();
-            let session = my_str.as_slice();
+            let session = my_str.as_ref();
             let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
             args.push(session);
             exec_program("tmux", args.as_slice());
         }
-        _ => { exec_program("tmux", ["tmux"].as_slice()); }
+        _ => { exec_program("tmux", ["tmux"].as_ref()); }
     }
 }
 
 #[test]
 fn test_session_number_with_numbers(){
-    match(detached_session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
+    match detached_session_number("11: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]") {
         Some(11) => (),
         Some(n) => panic!(format!("Should have returned 11, got {}!", n)),
         None => panic!("Should have returned something, got nothing"),
@@ -91,7 +92,7 @@ fn test_session_number_with_numbers(){
 
 #[test]
 fn test_session_number_with_strings(){
-    match(detached_session_number("oink: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]")) {
+    match detached_session_number("oink: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65]") {
         Some(n) => panic!(format!("Should have returned None, got {}!", n)),
         None => ()
     }
@@ -99,7 +100,7 @@ fn test_session_number_with_strings(){
 
 #[test]
 fn test_session_number_with_attached_session(){
-    match(detached_session_number("1: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)")) {
+    match detached_session_number("1: 1 windows (created Sat Sep 14 17:11:29 2013) [130x65] (attached)") {
         Some(n) => panic!(format!("Should have returned None, got {}!", n)),
         None => ()
     }
