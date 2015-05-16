@@ -12,6 +12,7 @@ use std::ptr;
 use std::env;
 use std::path::PathBuf;
 use std::ffi::CString;
+use std::ffi::CStr;
 
 
 fn detached_session_number(line: &str) -> Option<usize> {
@@ -28,28 +29,24 @@ fn detached_sessions(output: &str) -> BTreeSet<usize> {
     }).collect()
 }
 
-// XXX: Conversion convenience function until rust allows
-//   #![feature(convert)] and
-//   .to_cstring
-fn c_string_or_bust(arg: &str, error: &str) -> CString {
-    let bytes: Vec<u8> = arg.bytes().collect();
-    CString::new(bytes).ok().expect(error)
-}
-
 fn exec_program(program: &str, args: &[&str]) {
-    let c_program = c_string_or_bust(program, "Program name isn't unicode").as_ptr();
-    // I don't much care about the ownership of the strings here
-    // at this point, so let's just fail if execvp isn't working.
+    // Each of these CStrings has to outlive pointers to it. Sadly,
+    // the rust compiler doesn't scream when they don't (see
+    // http://is.gd/nS339k), so we better make damn sure that the args
+    // will stick around.
+    let c_program_as_cstring = CString::new(program.bytes().collect::<Vec<u8>>()).unwrap();
+    let c_program = c_program_as_cstring.as_ptr();
+
+    let args_as_cstring = args.iter().map(|arg| CString::new(arg.bytes().collect::<Vec<u8>>()).unwrap()).collect::<Vec<CString>>();
+    let mut c_args = args_as_cstring.iter().map(|arg| arg.as_ptr()).collect::<Vec<_>>();
+    c_args.push(ptr::null());
+
     unsafe {
-        let mut c_args = vec![];
-        for &arg in args.iter() {
-            c_args.push(c_string_or_bust(arg, "Can't with string that aren't valid Unicode").as_ptr());
-        }
-        c_args.push(ptr::null());
         execvp(c_program, c_args.as_mut_ptr());
-        perror(c_string_or_bust("Running tmux failed:", "Invalid text").as_ptr());
+        perror(CString::new("execvp".bytes().collect::<Vec<u8>>()).unwrap().as_ptr());
+        println!("execvp of {:?} failed", CStr::from_ptr(c_program).to_bytes_with_nul());
     }
-    panic!("Oh noes, couldn't exec.");
+    panic!("Oh noes, couldn't execvp.");
 }
 
 fn prepare_environment() {
