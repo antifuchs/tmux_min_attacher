@@ -1,6 +1,4 @@
-#![feature(libc)]
-#![feature(std_misc)]
-#![feature(convert)]
+//#![feature(convert)]
 
 //extern crate std;
 extern crate libc;
@@ -12,7 +10,7 @@ use std::collections::BTreeSet;
 use libc::{execvp, perror};
 use std::ptr;
 use std::env;
-use std::ffi::AsOsStr;
+use std::ffi::CString;
 
 
 fn detached_session_number(line: &str) -> Option<usize> {
@@ -29,18 +27,26 @@ fn detached_sessions(output: &str) -> BTreeSet<usize> {
     }).collect()
 }
 
+// XXX: Conversion convenience function until rust allows
+//   #![feature(convert)] and
+//   .to_cstring
+fn c_string_or_bust(arg: &str, error: &str) -> CString {
+    let bytes: Vec<u8> = arg.bytes().collect();
+    CString::new(bytes).ok().expect(error)
+}
+
 fn exec_program(program: &str, args: &[&str]) {
-    let c_program = program.as_os_str().to_cstring().expect("Program name isn't unicode").as_ptr();
+    let c_program = c_string_or_bust(program, "Program name isn't unicode").as_ptr();
     // I don't much care about the ownership of the strings here
     // at this point, so let's just fail if execvp isn't working.
     unsafe {
         let mut c_args = vec![];
         for &arg in args.iter() {
-            c_args.push(arg.as_os_str().to_cstring().expect("Can't with string that aren't valid Unicode").as_ptr());
+            c_args.push(c_string_or_bust(arg, "Can't with string that aren't valid Unicode").as_ptr());
         }
         c_args.push(ptr::null());
         execvp(c_program, c_args.as_mut_ptr());
-        perror("Running tmux failed:".as_os_str().to_cstring().expect("Invalid text").as_ptr());
+        perror(c_string_or_bust("Running tmux failed:", "Invalid text").as_ptr());
     }
     panic!("Oh noes, couldn't exec.");
 }
