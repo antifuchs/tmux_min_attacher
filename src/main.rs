@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use libc::{execvp, perror};
 use std::ptr;
 use std::env;
+use std::path::PathBuf;
 use std::ffi::CString;
 
 
@@ -52,11 +53,15 @@ fn exec_program(program: &str, args: &[&str]) {
 }
 
 fn prepare_environment() {
-    let path = match env::var("PATH") {
-        Ok(path) => path + ":/usr/local/bin",
-        _ => "/bin:/usr/bin:/usr/local/bin".to_string()
-    };
-    env::set_var("PATH", &path);
+    if let Some(path) = env::var_os("PATH") {
+        let mut paths = env::split_paths(&path).collect::<Vec<_>>();
+        paths.push(PathBuf::from("/usr/local/bin"));
+        let new_path = env::join_paths(paths.iter()).unwrap();
+        env::set_var("PATH", &new_path);
+    } else {
+        let new_path = env::join_paths(["/usr/bin", "/bin", "/usr/local/bin"].iter().map(|p| PathBuf::from(p)).collect::<Vec<_>>()).unwrap();
+        env::set_var("PATH", &new_path);
+    }
 }
 
 fn start_server() {
