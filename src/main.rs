@@ -14,6 +14,7 @@ use std::path::PathBuf;
 use std::ffi::CString;
 use std::ffi::CStr;
 
+const PROGRAM: &'static str = "tmux";
 
 fn detached_session_number(line: &str) -> Option<usize> {
     if line.ends_with("(attached)") {
@@ -62,7 +63,7 @@ fn prepare_environment() {
 }
 
 fn start_server() {
-    Command::new("tmux").arg("start-server").status().ok()
+    Command::new(PROGRAM).arg("start-server").status().ok()
         .expect("Could not start tmux server: it exited with an error status.");
 }
 
@@ -70,7 +71,7 @@ fn main() {
     prepare_environment();
 
     start_server();
-    let session_output = Command::new("tmux").arg("list-sessions").output().ok()
+    let session_output = Command::new(PROGRAM).arg("list-sessions").output().ok()
         .expect("Running list-sessions command exited with an error status");
 
     let output = str::from_utf8(&session_output.stdout).ok()
@@ -81,11 +82,11 @@ fn main() {
         Some(n) => {
             let my_str = n.to_string();
             let session = my_str.as_ref();
-            let mut args: Vec<&str> = vec!["tmux", "attach-session", "-t"];
+            let mut args: Vec<&str> = vec![PROGRAM, "attach-session", "-t"];
             args.push(session);
-            exec_program("tmux", args.as_slice());
+            exec_program(PROGRAM, &args);
         }
-        _ => { exec_program("tmux", ["tmux"].as_ref()); }
+        _ => { exec_program(PROGRAM, [PROGRAM].as_ref()); }
     }
 }
 
