@@ -56,7 +56,7 @@ fn prepare_environment() {
         Ok(path) => path + ":/usr/local/bin",
         _ => "/bin:/usr/bin:/usr/local/bin".to_string()
     };
-    env::set_var("PATH", path.as_str());
+    env::set_var("PATH", &path);
 }
 
 fn start_server() {
@@ -71,7 +71,7 @@ fn main() {
     let session_output = Command::new("tmux").arg("list-sessions").output().ok()
         .expect("Running list-sessions command exited with an error status");
 
-    let output = str::from_utf8(session_output.stdout.as_slice()).ok()
+    let output = str::from_utf8(&session_output.stdout).ok()
         .expect("Could not read the (expected) utf-8 from tmux");
     let sessions = detached_sessions(output);
 
