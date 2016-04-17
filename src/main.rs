@@ -1,18 +1,17 @@
 //#![feature(convert)]
 
-//extern crate std;
-extern crate libc;
+extern crate nix;
 
+use std::error::Error;
 use std::process::Command;
 use std::str;
 use std::option::Option;
 use std::collections::BTreeSet;
-use libc::{execvp, perror};
-use std::ptr;
+use nix::unistd::execvp;
+// use libc::{execvp, perror};
 use std::env;
 use std::path::PathBuf;
 use std::ffi::CString;
-use std::ffi::CStr;
 
 const PROGRAM: &'static str = "tmux";
 
@@ -30,24 +29,22 @@ fn detached_sessions(output: &str) -> BTreeSet<usize> {
     }).collect()
 }
 
+// TODO: This should return a Result & let the caller decide to run a
+// shell or something.
 fn exec_program(program: &str, args: &[&str]) {
     // Each of these CStrings has to outlive pointers to it. Sadly,
     // the rust compiler doesn't scream when they don't (see
     // http://is.gd/nS339k), so we better make damn sure that the args
     // will stick around.
-    let c_program_as_cstring = CString::new(program.bytes().collect::<Vec<u8>>()).unwrap();
-    let c_program = c_program_as_cstring.as_ptr();
+    let c_program_as_cstring = CString::new(program).unwrap();
+    let args_as_cstring = args.iter().map(|arg| CString::new(*arg).unwrap()).collect::<Vec<CString>>();
 
-    let args_as_cstring = args.iter().map(|arg| CString::new(arg.bytes().collect::<Vec<u8>>()).unwrap()).collect::<Vec<CString>>();
-    let mut c_args = args_as_cstring.iter().map(|arg| arg.as_ptr()).collect::<Vec<_>>();
-    c_args.push(ptr::null());
-
-    unsafe {
-        execvp(c_program, c_args.as_mut_ptr());
-        perror(CString::new("execvp".bytes().collect::<Vec<u8>>()).unwrap().as_ptr());
-        println!("execvp of {:?} failed", CStr::from_ptr(c_program).to_bytes_with_nul());
+    match execvp(&c_program_as_cstring, &args_as_cstring) {
+        Err(e) => {
+            println!("execvp of {:?} failed: {:?}", program, e.description());
+        }
+        _ => {}
     }
-    panic!("Oh noes, couldn't execvp.");
 }
 
 fn prepare_environment() {
