@@ -1,8 +1,13 @@
 [package]
 
 name = "tmux_min_attacher"
-version = "0.0.1"
+version = "1.0.0"
 authors = ["Andreas Fuchs <asf@boinkor.net>"]
+license = "MIT"
+description = "A tool that re-attaches you to the lowest detached TMUX session number"
+repository = "https://github.com/antifuchs/tmux_min_attacher"
+
+keywords = ["tmux", "terminal"]
 
 [dependencies]
 #c_str = "^1.0.7"
