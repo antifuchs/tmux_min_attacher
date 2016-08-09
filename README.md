@@ -11,7 +11,7 @@ getting pretty annoying to me, so I wrote this program.
 
 ## Usage
 
-1. Get Rust 1.8
+1. Get Rust 1.10
 2. (optionally) check the PATH that
    [this](https://github.com/antifuchs/tmux_min_attacher/blob/master/tmux_min_attacher.rs#L42-L48)
    sets - setting PATH from your shell init files won't cut it here.
@@ -32,7 +32,7 @@ least!)
 
 ## Disclaimer
 
-I've tested this with the 1.8 release of Rust. It uses
+I've tested this with the 1.10 release of Rust. It uses
 [nix](https://github.com/nix-rust/nix) to get access to
 stable&safe-ish unix interfaces for `exec` and such, so should be
 pretty stable - I've been using this code for a few months now. Let me
