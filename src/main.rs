@@ -13,7 +13,7 @@ use std::env;
 use std::ffi::CString;
 use std::path::PathBuf;
 
-const PROGRAM: &'static str = "tmux";
+const PROGRAM: &str = "tmux";
 
 fn detached_session_number(line: &str) -> Option<usize> {
     if line.ends_with("(attached)") {
@@ -43,11 +43,8 @@ fn exec_program(program: &str, args: &[&str]) {
         .map(|arg| CString::new(*arg).unwrap())
         .collect::<Vec<CString>>();
 
-    match execvp(&c_program_as_cstring, &args_as_cstring) {
-        Err(e) => {
-            println!("execvp of {:?} failed: {:?}", program, e.description());
-        }
-        _ => {}
+    if let Err(e) = execvp(&c_program_as_cstring, &args_as_cstring) {
+        println!("execvp of {:?} failed: {:?}", program, e.description())
     }
 }
 
@@ -61,7 +58,7 @@ fn prepare_environment() {
         let new_path = env::join_paths(
             ["/usr/bin", "/bin", "/usr/local/bin"]
                 .iter()
-                .map(|p| PathBuf::from(p))
+                .map(PathBuf::from)
                 .collect::<Vec<_>>(),
         )
         .unwrap();
@@ -73,7 +70,6 @@ fn start_server() {
     Command::new(PROGRAM)
         .arg("start-server")
         .status()
-        .ok()
         .expect("Could not start tmux server: it exited with an error status.");
 }
 
@@ -84,11 +80,9 @@ fn main() {
     let session_output = Command::new(PROGRAM)
         .arg("list-sessions")
         .output()
-        .ok()
         .expect("Running list-sessions command exited with an error status");
 
     let output = str::from_utf8(&session_output.stdout)
-        .ok()
         .expect("Could not read the (expected) utf-8 from tmux");
     let sessions = detached_sessions(output);
 
