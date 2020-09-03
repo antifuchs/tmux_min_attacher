@@ -52,6 +52,7 @@ fn prepare_environment() {
     if let Some(path) = env::var_os("PATH") {
         let mut paths = env::split_paths(&path).collect::<Vec<_>>();
         paths.push(PathBuf::from("/usr/local/bin"));
+        paths.push(PathBuf::from("/run/current-system/sw/bin"));
         let new_path = env::join_paths(paths.iter()).unwrap();
         env::set_var("PATH", &new_path);
     } else {
